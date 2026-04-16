@@ -18,25 +18,28 @@ public class SecurityConfig {
     private final LoginSuccessHandler loginSuccessHandler;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authorization -> authorization
-                .requestMatchers("/css/**", "/js/**", "/img/**", "/vendor/**").permitAll()
-                .requestMatchers("/login", "/register", "/h2-console/**").permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/client/**").hasRole("CLIENT")
-                .anyRequest().authenticated()
-        ).formLogin(form -> form
-                .loginPage("/login")
-                .successHandler(loginSuccessHandler)
-                .permitAll()
-        ).logout( logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
-                .permitAll()
-        );
+                        .requestMatchers("/css/**", "/js/**", "/img/**", "/vendor/**").permitAll()
+                        .requestMatchers("/login", "/register", "/h2-console/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/client/**").hasRole("CLIENT")
+                        .anyRequest().authenticated()
+                )
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .successHandler(loginSuccessHandler)
+                        .permitAll()
+                )
+                .httpBasic(org.springframework.security.config.Customizer.withDefaults())
 
-        //temp
-        http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"));
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                );
+
+        http.csrf(csrf -> csrf.disable());
         http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));
 
         return http.build();
