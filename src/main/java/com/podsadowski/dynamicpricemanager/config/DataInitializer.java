@@ -22,6 +22,16 @@ public class DataInitializer {
                 userRepository.save(admin);
                 System.out.println("Admin created: admin@system.com : admin");
             }
+
+            if(userRepository.findByEmail("client@system.com").isEmpty()) {
+                AppUser client = new AppUser();
+                client.setEmail("client@system.com");
+                client.setPassword(passwordEncoder.encode("client"));
+                client.setRole("CLIENT");
+
+                userRepository.save(client);
+                System.out.println("Client created: client@system.com : client");
+            }
         };
     }
 }
