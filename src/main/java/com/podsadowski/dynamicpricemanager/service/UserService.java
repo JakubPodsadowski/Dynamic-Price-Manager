@@ -19,4 +19,17 @@ public class UserService {
         AppUser newUser = new AppUser(email, encodedPassword, role);
         userRepository.save(newUser);
     }
+
+    public AppUser getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono użytkownika"));
+    }
+
+    public void updateUserProfile(String email, String firstName, String lastName, String phoneNumber) {
+        AppUser user = getUserByEmail(email);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setPhoneNumber(phoneNumber);
+        userRepository.save(user);
+    }
 }

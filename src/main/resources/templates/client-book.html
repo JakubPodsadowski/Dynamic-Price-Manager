@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments-client :: head('Rezerwacja Terminu')}"></head>
+<body id="page-top">
+<div id="wrapper">
+    <ul th:replace="~{fragments-client :: sidebar}"></ul>
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+            <nav th:replace="~{fragments-client :: topbar}"></nav>
+            <div class="container-fluid">
+
+                <h1 class="h3 mb-4 text-gray-800">Ustal Termin Wizyty</h1>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-primary">
+                                    Rezerwujesz: <span th:text="${selectedService.name}"></span>
+                                    (Czas: <span th:text="${selectedService.duration}"></span> min)
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/client/reserve}" method="post">
+                                    <input type="hidden" name="serviceId" th:value="${selectedService.id}">
+
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Wybierz Pracownika</label>
+                                        <select name="employeeId" id="employeeSelect" class="form-control" required>
+                                            <option value="" disabled selected>-- Wybierz specjalistę --</option>
+                                            <option th:each="emp : ${employees}"
+                                                    th:value="${emp.id}"
+                                                    th:text="${emp.firstName + ' ' + emp.lastName + ' (' + emp.specialization + ')'}">
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Wybierz Datę</label>
+                                        <input type="date" name="date" id="dateSelect" class="form-control" required disabled>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Wybierz Godzinę</label>
+                                        <select name="time" id="timeSelect" class="form-control" required disabled>
+                                            <option value="" disabled selected>-- Najpierw wybierz pracownika i datę --</option>
+                                            <option value="09:00">09:00</option>
+                                            <option value="10:00">10:00</option>
+                                            <option value="11:00">11:00</option>
+                                            <option value="12:00">12:00</option>
+                                            <option value="13:00">13:00</option>
+                                            <option value="14:00">14:00</option>
+                                            <option value="15:00">15:00</option>
+                                            <option value="16:00">16:00</option>
+                                            <option value="17:00">17:00</option>
+                                        </select>
+                                        <small class="form-text text-muted">Wyszarzone godziny są już zajęte.</small>
+                                    </div>
+
+                                    <button type="submit" id="submitBtn" class="btn btn-primary btn-block shadow-sm" disabled>
+                                        Potwierdź Rezerwację
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments-client :: scripts}"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const employeeSelect = document.getElementById('employeeSelect');
+        const dateSelect = document.getElementById('dateSelect');
+        const timeSelect = document.getElementById('timeSelect');
+        const submitBtn = document.getElementById('submitBtn');
+
+        const today = new Date().toISOString().split('T')[0];
+        dateSelect.setAttribute('min', today);
+
+        employeeSelect.addEventListener('change', function() {
+            dateSelect.disabled = false;
+            checkAvailableHours();
+        });
+
+        dateSelect.addEventListener('change', checkAvailableHours);
+
+        timeSelect.addEventListener('change', function() {
+            submitBtn.disabled = !this.value;
+        });
+
+        function checkAvailableHours() {
+            const empId = employeeSelect.value;
+            const dateStr = dateSelect.value;
+
+            if (!empId || !dateStr) {
+                timeSelect.disabled = true;
+                return;
+            }
+
+            timeSelect.disabled = false;
+
+            Array.from(timeSelect.options).forEach(opt => {
+                if(opt.value !== "") {
+                    opt.disabled = false;
+                    opt.text = opt.value;
+                }
+            });
+
+            fetch(`/api/reservations/taken-hours?employeeId=${empId}&date=${dateStr}`)
+                .then(response => response.json())
+                .then(takenHours => {
+                    Array.from(timeSelect.options).forEach(opt => {
+                        if (opt.value && takenHours.some(th => th.startsWith(opt.value))) {
+                            opt.disabled = true;
+                            opt.text = opt.value + " (Zajęty)";
+                        }
+                    });
+                })
+                .catch(error => console.error('Błąd pobierania godzin:', error));
+        }
+    });
+</script>
+
+</body>
+</html>

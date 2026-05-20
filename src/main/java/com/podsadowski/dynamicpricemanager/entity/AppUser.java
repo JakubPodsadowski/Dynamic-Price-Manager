@@ -25,6 +25,12 @@ public class AppUser {
     @Column(nullable = false)
     private String role;
 
+    private String firstName;
+
+    private String lastName;
+
+    private String phoneNumber;
+
     public AppUser(String email, String password, String role) {
         this.email = email;
         this.password = password;

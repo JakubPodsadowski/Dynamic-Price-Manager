@@ -5,6 +5,7 @@ import com.podsadowski.dynamicpricemanager.entity.SaloonService;
 import com.podsadowski.dynamicpricemanager.repository.SaloonServicesRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -53,5 +54,9 @@ public class SaloonServiceManager {
         } else {
             throw new RuntimeException("No service with ID: " + service.getId());
         }
+    }
+
+    public SaloonService getServiceById(Long id) {
+        return saloonServicesRepository.findById(id).orElseThrow(() -> new RuntimeException("No service with ID: " + id));
     }
 }

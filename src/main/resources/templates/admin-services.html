@@ -24,7 +24,8 @@
                                     <th>Nazwa</th>
                                     <th>Cena (PLN)</th>
                                     <th>Czas (min)</th>
-                                    <th>Opis</th> <th>Akcje</th>
+                                    <th>Opis</th>
+                                    <th>Akcje</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -32,19 +33,20 @@
                                     <td th:text="${s.name}"></td>
                                     <td th:text="${s.price}"></td>
                                     <td th:text="${s.duration}"></td>
-                                    <td th:text="${s.description}"></td> <td>
-                                    <div class="btn-group">
-                                        <button class="btn btn-warning btn-sm" data-toggle="modal" th:data-target="'#editModal'+${s.id}">
-                                            <i class="fas fa-edit"></i> Edytuj
-                                        </button>
-                                        <form th:action="@{/admin/services/delete/{id}(id=${s.id})}" method="post"
-                                              style="display:inline" onsubmit="return confirm('Czy na pewno chcesz usunąć tę usługę?')">
-                                            <button class="btn btn-danger btn-sm" type="submit">
-                                                <i class="fas fa-trash"></i> Usuń
+                                    <td th:text="${s.description}"></td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-warning btn-sm" data-toggle="modal" th:data-target="'#editModal'+${s.id}">
+                                                <i class="fas fa-edit"></i> Edytuj
                                             </button>
-                                        </form>
-                                    </div>
-                                </td>
+                                            <form th:action="@{/admin/services/delete/{id}(id=${s.id})}" method="post"
+                                                  style="display:inline" onsubmit="return confirm('Czy na pewno chcesz usunąć tę usługę?')">
+                                                <button class="btn btn-danger btn-sm" type="submit">
+                                                    <i class="fas fa-trash"></i> Usuń
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
 
                                     <div class="modal fade" th:id="'editModal' + ${s.id}" tabindex="-1" role="dialog">
                                         <div class="modal-dialog" role="document">
@@ -62,7 +64,7 @@
                                                         </div>
                                                         <div class="form-group">
                                                             <label>Cena (PLN)</label>
-                                                            <input type="number" step="0.01" name="price" th:value="${s.price}" class="form-control" required>
+                                                            <input type="number" step="0.01" name="price" th:value="${s.price}" class="form-control" min="0" required>
                                                         </div>
                                                         <div class="form-group">
                                                             <label>Opis usługi</label>
@@ -70,7 +72,7 @@
                                                         </div>
                                                         <div class="form-group">
                                                             <label>Czas (min)</label>
-                                                            <input type="number" name="duration" th:value="${s.duration}" class="form-control" required>
+                                                            <input type="number" name="duration" th:value="${s.duration}" class="form-control" min="1" required>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">
@@ -81,9 +83,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                </tr>
-                                <tr th:if="${#lists.isEmpty(services)}">
-                                    <td colspan="5" class="text-center">Brak usług w bazie danych.</td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -97,32 +96,43 @@
 
 <div class="modal fade" id="addServiceModal" tabindex="-1" role="dialog">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <form th:action="@{/admin/addservice-ui}" method="post">
+        <div class="modal-content" th:if="${saloonService != null}">
+
+            <form th:action="@{/admin/services/add}" th:object="${saloonService}" method="post">
+                <input type="hidden" id="hasErrors" th:value="${#fields.hasAnyErrors()}">
+
                 <div class="modal-header">
                     <h5>Dodaj nową usługę</h5>
                     <button class="close" type="button" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body">
+                    <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger">Popraw błędy w formularzu.</div>
+
                     <div class="form-group">
                         <label>Nazwa</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input type="text" th:field="*{name}" class="form-control" th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{name}"></div>
                     </div>
+
                     <div class="form-group">
                         <label>Cena (PLN)</label>
-                        <input type="number" step="0.01" name="price" class="form-control" required>
+                        <input type="number" step="0.01" th:field="*{price}" class="form-control" th:classappend="${#fields.hasErrors('price')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{price}"></div>
                     </div>
+
                     <div class="form-group">
                         <label>Opis</label>
-                        <textarea name="description" class="form-control" rows="2"></textarea>
+                        <textarea th:field="*{description}" class="form-control" rows="2" th:classappend="${#fields.hasErrors('description')} ? 'is-invalid'"></textarea>
                     </div>
+
                     <div class="form-group">
                         <label>Czas (min)</label>
-                        <input type="number" name="duration" class="form-control" required>
+                        <input type="number" th:field="*{duration}" class="form-control" th:classappend="${#fields.hasErrors('duration')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{duration}"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" data-dismiss="modal">Anuluj</button>
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal" onclick="window.location.href='/admin/services'">Anuluj</button>
                     <button class="btn btn-primary" type="submit">Zapisz</button>
                 </div>
             </form>
@@ -131,5 +141,14 @@
 </div>
 
 <div th:replace="~{fragments-admin :: scripts}"></div>
+
+<script>
+    $(document).ready(function(){
+        if ($('#hasErrors').val() === 'true') {
+            $('#addServiceModal').modal('show');
+        }
+    });
+</script>
+
 </body>
 </html>
