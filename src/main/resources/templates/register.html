@@ -2,59 +2,78 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>SB Admin 2 - Register</title>
-
+    <title>Registration — Saloon</title>
     <link th:href="@{/vendor/fontawesome-free/css/all.min.css}" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
     <link th:href="@{/css/sb-admin-2.min.css}" rel="stylesheet">
+    <style>
+        .register-hero {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            min-height: 100%;
+        }
+        .register-card {
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .register-accent {
+            background: linear-gradient(180deg, rgba(78,115,223,0.12), rgba(34,74,190,0.08));
+        }
+    </style>
 </head>
-
 <body class="bg-gradient-primary">
-
-<div class="container">
-    <div class="card o-hidden border-0 shadow-lg my-5">
-        <div class="card-body p-0">
-            <div class="row">
-                <div class="col-lg-5 d-none d-lg-block bg-register-image"></div>
-                <div class="col-lg-7">
-                    <div class="p-5">
-                        <div class="text-center">
-                            <h1 class="h4 text-gray-900 mb-4">Create an Account!</h1>
-
-                            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <span th:text="${error}">Hasła nie są identyczne!</span>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-xl-9 col-lg-10">
+            <div class="card shadow-lg border-0 register-card">
+                <div class="row no-gutters">
+                    <div class="col-lg-5 d-none d-lg-flex register-hero text-white flex-column justify-content-center p-5">
+                        <h2 class="h3 font-weight-bold mb-3">Join us</h2>
+                        <p class="mb-0 opacity-75">Create a client account, book online and manage your profile in one place.</p>
+                    </div>
+                    <div class="col-lg-7 bg-white">
+                        <div class="p-5">
+                            <div class="text-center mb-4">
+                                <h1 class="h4 text-gray-800 font-weight-bold">New account</h1>
+                                <p class="text-muted small mb-0">Fill in the form to get started.</p>
                             </div>
-                        </div>
 
-                        <form class="user" th:action="@{/register}" method="post" id="registerForm">
-                            <div class="form-group">
-                                <input type="email" class="form-control form-control-user" id="exampleInputEmail"
-                                       name="email" placeholder="Email Address" required>
-                            </div>
-                            <div class="form-group row">
-                                <div class="col-sm-6 mb-3 mb-sm-0">
-                                    <input type="password" class="form-control form-control-user"
-                                           id="password" name="password" placeholder="Password" required>
+                            <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+                            <div th:if="${passwordMismatch}" class="alert alert-warning" role="alert">Passwords must match.</div>
+
+                            <form th:action="@{/register}" th:object="${registerDto}" method="post" novalidate>
+                                <th:block th:replace="~{fragments-common :: csrf}"/>
+                                <div class="form-group">
+                                    <label class="small font-weight-bold text-gray-700" for="email">Email</label>
+                                    <input type="email" class="form-control form-control-lg rounded-pill" id="email"
+                                           th:field="*{email}" placeholder="jan@example.com" autocomplete="email"
+                                           th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'">
+                                    <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
                                 </div>
-                                <div class="col-sm-6">
-                                    <input type="password" class="form-control form-control-user"
-                                           id="confirmPassword" name="confirmPassword" placeholder="Repeat Password" required>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label class="small font-weight-bold text-gray-700" for="password">Password</label>
+                                        <input type="password" class="form-control form-control-lg rounded-pill" id="password"
+                                               th:field="*{password}" placeholder="min. 4 characters" autocomplete="new-password"
+                                               th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'">
+                                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label class="small font-weight-bold text-gray-700" for="confirmPassword">Confirm password</label>
+                                        <input type="password" class="form-control form-control-lg rounded-pill" id="confirmPassword"
+                                               th:field="*{confirmPassword}" autocomplete="new-password"
+                                               th:classappend="${#fields.hasErrors('confirmPassword')} ? 'is-invalid'">
+                                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></div>
+                                    </div>
                                 </div>
+                                <button type="submit" class="btn btn-primary btn-lg btn-block rounded-pill shadow-sm mt-2" id="submitBtn">
+                                    Create account
+                                </button>
+                            </form>
+                            <hr class="my-4">
+                            <div class="text-center">
+                                <a class="small font-weight-bold" th:href="@{/login}">Already have an account? Log in</a>
                             </div>
-
-                            <div id="passwordError" class="text-danger small mb-3 text-center" style="display:none;">
-                                Passwords do not match!
-                            </div>
-
-                            <button type="submit" id="submitBtn" class="btn btn-primary btn-user btn-block">
-                                Register Account
-                            </button>
-                        </form>
-                        <hr>
-                        <div class="text-center">
-                            <a class="small" th:href="@{/login}">Already have an account? Login!</a>
                         </div>
                     </div>
                 </div>
@@ -62,38 +81,22 @@
         </div>
     </div>
 </div>
-
 <script th:src="@{/vendor/jquery/jquery.min.js}"></script>
 <script th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
-<script th:src="@{/vendor/jquery-easing/jquery.easing.min.js}"></script>
-<script th:src="@{/js/sb-admin-2.min.js}"></script>
-
 <script>
-    $(document).ready(function() {
-        const password = $('#password');
-        const confirm = $('#confirmPassword');
-        const errorDiv = $('#passwordError');
-        const submitBtn = $('#submitBtn');
-
-        function validatePasswords() {
-            if (confirm.val() === "") {
-                errorDiv.hide();
+    $(function () {
+        var p = $('#password'), c = $('#confirmPassword'), btn = $('#submitBtn');
+        function sync() {
+            if (!c.val()) {
+                btn.prop('disabled', false);
                 return;
             }
-
-            if (password.val() !== confirm.val()) {
-                errorDiv.show();
-                submitBtn.prop('disabled', true);
-            } else {
-                errorDiv.hide();
-                submitBtn.prop('disabled', false);
-            }
+            btn.prop('disabled', p.val() !== c.val());
         }
-
-        password.on('keyup', validatePasswords);
-        confirm.on('keyup', validatePasswords);
+        p.on('input', sync);
+        c.on('input', sync);
+        sync();
     });
 </script>
-
 </body>
 </html>

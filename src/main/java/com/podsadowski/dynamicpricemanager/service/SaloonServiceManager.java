@@ -1,62 +1,76 @@
 package com.podsadowski.dynamicpricemanager.service;
 
+import com.podsadowski.dynamicpricemanager.dto.SalonServiceDto;
+import com.podsadowski.dynamicpricemanager.dto.SalonServiceFormDto;
 import com.podsadowski.dynamicpricemanager.entity.Employee;
+import com.podsadowski.dynamicpricemanager.entity.ReservationStatus;
 import com.podsadowski.dynamicpricemanager.entity.SaloonService;
+import com.podsadowski.dynamicpricemanager.mapper.DtoMapper;
+import com.podsadowski.dynamicpricemanager.repository.ReservationRepository;
 import com.podsadowski.dynamicpricemanager.repository.SaloonServicesRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class SaloonServiceManager {
+
     private final SaloonServicesRepository saloonServicesRepository;
     private final EmployeeService employeeService;
+    private final ReservationRepository reservationRepository;
+    private final DtoMapper dtoMapper;
 
-    public void addService(SaloonService service) {
-        saloonServicesRepository.save(service);
+    public List<SalonServiceDto> listAllDtos() {
+        return saloonServicesRepository.findAll().stream()
+                .map(dtoMapper::toDto)
+                .collect(Collectors.toList());
     }
 
-    public List<SaloonService> getAllServices() {
-        return saloonServicesRepository.findAll();
+    public SalonServiceDto getServiceDtoById(Long id) {
+        return dtoMapper.toDto(findEntityById(id));
     }
 
-    public List<SaloonService> getServicesByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return saloonServicesRepository.findAllById(ids);
+    public SaloonService findEntityById(Long id) {
+        return saloonServicesRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Service not found with ID: " + id));
+    }
+
+    public void addServiceFromForm(SalonServiceFormDto dto) {
+        SaloonService entity = dtoMapper.toEntity(dto);
+        entity.setId(null);
+        saloonServicesRepository.save(entity);
+    }
+
+    public void updateServiceFromForm(SalonServiceFormDto dto) {
+        SaloonService existing = findEntityById(dto.getId());
+        existing.setName(dto.getName());
+        existing.setPrice(dto.getPrice());
+        existing.setDescription(dto.getDescription());
+        existing.setDuration(dto.getDuration());
+        saloonServicesRepository.save(existing);
     }
 
     @Transactional
     public void deleteService(Long id) {
-        SaloonService service = saloonServicesRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("No service with ID: " + id));
+        if (reservationRepository.countByServiceIdAndStatusNot(id, ReservationStatus.CANCELLED) > 0) {
+            throw new IllegalStateException(
+                    "Cannot delete a service linked to existing reservations.");
+        }
+
+        SaloonService service = findEntityById(id);
 
         List<Employee> allEmployees = employeeService.getEmployees();
         for (Employee employee : allEmployees) {
-            if (employee.getServices().contains(service)) {
-                employee.getServices().remove(service);
-                employeeService.updateEmployee(employee);
+            if (employee.getServices().stream().anyMatch(s -> s.getId().equals(service.getId()))) {
+                employee.getServices().removeIf(s -> s.getId().equals(service.getId()));
+                employeeService.saveEmployee(employee);
             }
         }
 
         saloonServicesRepository.delete(service);
-    }
-
-    public void updateService(SaloonService service) {
-        if (saloonServicesRepository.existsById(service.getId())) {
-            saloonServicesRepository.save(service);
-        } else {
-            throw new RuntimeException("No service with ID: " + service.getId());
-        }
-    }
-
-    public SaloonService getServiceById(Long id) {
-        return saloonServicesRepository.findById(id).orElseThrow(() -> new RuntimeException("No service with ID: " + id));
     }
 }

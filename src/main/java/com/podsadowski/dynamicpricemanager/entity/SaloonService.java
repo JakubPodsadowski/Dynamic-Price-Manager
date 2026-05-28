@@ -9,8 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalTime;
-
 @Entity
 @Table(name = "services")
 @Getter
@@ -31,6 +29,7 @@ public class SaloonService {
     @Column(nullable = false)
     private Double price;
 
+    @NotBlank(message = "Service description cannot be blank")
     @Column(nullable = false)
     private String description;
 

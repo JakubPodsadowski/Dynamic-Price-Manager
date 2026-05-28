@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments-admin :: head('Zarządzanie Zespołem')}"></head>
+<head th:replace="~{fragments-admin :: head('Team management')}"></head>
 <body id="page-top">
 <div id="wrapper">
     <ul th:replace="~{fragments-admin :: sidebar}"></ul>
@@ -9,136 +9,204 @@
             <nav th:replace="~{fragments-admin :: topbar}"></nav>
             <div class="container-fluid">
                 <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                    <h1 class="h3 mb-0 text-gray-800">Pracownicy</h1>
-                    <button class="btn btn-success shadow-sm" data-toggle="modal" data-target="#addEmployeeModal">Dodaj Pracownika</button>
+                    <h1 class="h3 mb-0 text-gray-800">Employees</h1>
+                    <button type="button" class="btn btn-success shadow-sm" data-toggle="modal" data-target="#addEmployeeModal">Add employee</button>
                 </div>
+
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
                 <div class="card shadow mb-4">
                     <div class="card-body">
-                        <div class="table-responsive"> <table class="table table-bordered">
-                            <thead>
-                            <tr>
-                                <th>Pracownik</th>
-                                <th>Specjalizacja</th> <th>Usługi</th>
-                                <th>Akcje</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr th:each="e : ${employees}">
-                                <td th:text="${e.firstName} + ' ' + ${e.lastName}"></td>
-                                <td th:text="${e.specialization}"></td> <td>
-                                <span th:each="s : ${e.services}" class="badge badge-info mr-1" th:text="${s.name}"></span>
-                            </td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm" data-toggle="modal" th:data-target="'#editEmp'+${e.id}">
-                                        <i class="fas fa-edit"></i> Edytuj
-                                    </button>
-                                    <form th:action="@{/admin/employees/delete/{id}(id=${e.id})}" method="post"
-                                          style="display:inline" onsubmit="return confirm('Czy na pewno chcesz usunąć pracownika?')">
-                                        <button class="btn btn-danger btn-sm" type="submit">
-                                            <i class="fas fa-trash"></i> Usuń
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Specialization</th>
+                                    <th>Working hours</th>
+                                    <th>Services</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="e : ${employees}">
+                                    <td th:text="${e.firstName + ' ' + e.lastName}"></td>
+                                    <td th:text="${e.specialization}"></td>
+                                    <td>
+                                        <span th:text="${e.workDayStart != null ? #temporals.format(e.workDayStart, 'HH:mm') : '09:00'}">09:00</span>
+                                        –
+                                        <span th:text="${e.workDayEnd != null ? #temporals.format(e.workDayEnd, 'HH:mm') : '17:00'}">17:00</span>
+                                    </td>
+                                    <td>
+                                        <span th:each="sn : ${e.serviceNames}" class="badge badge-info mr-1 mb-1" th:text="${sn}"></span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" th:data-target="'#editEmp'+${e.id}">
+                                            <i class="fas fa-edit"></i> Edit
                                         </button>
-                                    </form>
-                                </td>
-
-                                <div class="modal fade" th:id="'editEmp'+${e.id}" tabindex="-1" role="dialog">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <form th:action="@{/admin/employees/edit}" method="post">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Edytuj Pracownika</h5>
-                                                    <button class="close" type="button" data-dismiss="modal"><span>&times;</span></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <input type="hidden" name="id" th:value="${e.id}">
-
-                                                    <div class="form-group">
-                                                        <label>Imię</label>
-                                                        <input type="text" name="firstName" th:value="${e.firstName}" class="form-control" required>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label>Nazwisko</label>
-                                                        <input type="text" name="lastName" th:value="${e.lastName}" class="form-control" required>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label>Specjalizacja</label>
-                                                        <input type="text" name="specialization" th:value="${e.specialization}" class="form-control">
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label>Usługi:</label>
-                                                        <div class="border p-2" style="max-height: 200px; overflow-y: auto;">
-                                                            <div th:each="ser : ${allServices}" class="custom-control custom-checkbox">
-                                                                <input type="checkbox" class="custom-control-input"
-                                                                       th:id="'checkEdit' + ${e.id} + '-' + ${ser.id}"
-                                                                       name="serviceIds" th:value="${ser.id}"
-                                                                       th:checked="${#lists.contains(e.services, ser)}">
-                                                                <label class="custom-control-label" th:for="'checkEdit' + ${e.id} + '-' + ${ser.id}" th:text="${ser.name}"></label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button class="btn btn-secondary" data-dismiss="modal">Anuluj</button>
-                                                    <button class="btn btn-success" type="submit">Zapisz zmiany</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(employees)}">
-                                <td colspan="4" class="text-center">Brak pracowników w bazie.</td>
-                            </tr>
-                            </tbody>
-                        </table>
+                                        <form th:action="@{/admin/employees/delete/{id}(id=${e.id})}" method="post" style="display:inline"
+                                              onsubmit="return confirm('Are you sure you want to delete this employee?')">
+                                            <th:block th:replace="~{fragments-common :: csrf}"/>
+                                            <button class="btn btn-danger btn-sm" type="submit">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(employees)}">
+                                    <td colspan="5" class="text-center">No employees in the database.</td>
+                                </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
+
+                <th:block th:each="e : ${employees}">
+                    <div class="modal fade" th:id="'editEmp'+${e.id}" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <form th:action="@{/admin/employees/save}" method="post">
+                                    <th:block th:replace="~{fragments-common :: csrf}"/>
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Edit employee</h5>
+                                        <button class="close" type="button" data-dismiss="modal"><span>&times;</span></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="employeeForm.id" th:value="${e.id}">
+                                        <div class="form-row">
+                                            <div class="form-group col-md-6">
+                                                <label>First name</label>
+                                                <input type="text" name="employeeForm.firstName" th:value="${e.firstName}" class="form-control" required>
+                                            </div>
+                                            <div class="form-group col-md-6">
+                                                <label>Last name</label>
+                                                <input type="text" name="employeeForm.lastName" th:value="${e.lastName}" class="form-control" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Specialization</label>
+                                            <input type="text" name="employeeForm.specialization" th:value="${e.specialization}" class="form-control">
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-6">
+                                                <label>Work start</label>
+                                                <input type="time" name="employeeForm.workDayStart" class="form-control"
+                                                       th:value="${e.workDayStart != null ? #temporals.format(e.workDayStart, 'HH:mm') : '09:00'}" required>
+                                            </div>
+                                            <div class="form-group col-md-6">
+                                                <label>Work end</label>
+                                                <input type="time" name="employeeForm.workDayEnd" class="form-control"
+                                                       th:value="${e.workDayEnd != null ? #temporals.format(e.workDayEnd, 'HH:mm') : '17:00'}" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Services</label>
+                                            <div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
+                                                <div th:each="ser : ${allServices}" class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input"
+                                                           th:id="'checkEdit' + ${e.id} + '-' + ${ser.id}"
+                                                           name="employeeForm.serviceIds" th:value="${ser.id}"
+                                                           th:checked="${e.serviceIds != null && #lists.contains(e.serviceIds, ser.id)}">
+                                                    <label class="custom-control-label" th:for="'checkEdit' + ${e.id} + '-' + ${ser.id}" th:text="${ser.name}"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                                        <button class="btn btn-success" type="submit">Save</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </th:block>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="addEmployeeModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog">
+<div class="modal fade" id="addEmployeeModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form th:action="@{/admin/employees/add}" method="post">
+            <form th:action="@{/admin/employees/save}" th:object="${employeeForm}" method="post">
+                <th:block th:replace="~{fragments-common :: csrf}"/>
                 <div class="modal-header">
-                    <h5>Dodaj Pracownika</h5>
+                    <h5 class="modal-title">New employee</h5>
                     <button class="close" type="button" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Imię</label>
-                        <input type="text" name="firstName" class="form-control" required>
+                    <div th:if="${openAddModal}" class="alert alert-danger">
+                        <p class="mb-2 font-weight-bold">Please check the following:</p>
+                        <ul class="mb-0 pl-3 small">
+                            <li th:each="e : ${#fields.errors('firstName')}" th:text="${e}"></li>
+                            <li th:each="e : ${#fields.errors('lastName')}" th:text="${e}"></li>
+                            <li th:each="e : ${#fields.errors('workDayStart')}" th:text="${e}"></li>
+                            <li th:each="e : ${#fields.errors('workDayEnd')}" th:text="${e}"></li>
+                            <li th:each="e : ${#fields.errors('serviceIds')}" th:text="${e}"></li>
+                            <li th:each="e : ${#fields.errors('workDayOrderValid')}" th:text="${e}"></li>
+                        </ul>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>First name</label>
+                            <input type="text" th:field="*{firstName}" class="form-control" th:classappend="${openAddModal and #fields.hasErrors('firstName')} ? 'is-invalid'" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Last name</label>
+                            <input type="text" th:field="*{lastName}" class="form-control" th:classappend="${openAddModal and #fields.hasErrors('lastName')} ? 'is-invalid'" required>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Nazwisko</label>
-                        <input type="text" name="lastName" class="form-control" required>
+                        <label>Specialization</label>
+                        <input type="text" th:field="*{specialization}" class="form-control">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Work start</label>
+                            <input type="time" th:field="*{workDayStart}" class="form-control" th:classappend="${openAddModal and #fields.hasErrors('workDayStart')} ? 'is-invalid'" step="60" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Work end</label>
+                            <input type="time" th:field="*{workDayEnd}" class="form-control" th:classappend="${openAddModal and #fields.hasErrors('workDayEnd')} ? 'is-invalid'" step="60" required>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Specjalizacja</label>
-                        <input type="text" name="specialization" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Wykonywane usługi:</label>
-                        <div class="border p-2" style="max-height: 200px; overflow-y: auto;">
+                        <label>Services</label>
+                        <div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
                             <div th:each="ser : ${allServices}" class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input"
                                        th:id="'checkAdd' + ${ser.id}"
-                                       name="serviceIds" th:value="${ser.id}">
+                                       th:field="*{serviceIds}"
+                                       th:value="${ser.id}">
                                 <label class="custom-control-label" th:for="'checkAdd' + ${ser.id}" th:text="${ser.name}"></label>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" data-dismiss="modal">Anuluj</button>
-                    <button class="btn btn-success" type="submit">Dodaj</button>
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success" type="submit">Add</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 <div th:replace="~{fragments-admin :: scripts}"></div>
+<script th:inline="javascript">
+    $(document).ready(function () {
+        var openAdd = /*[[${openAddModal}]]*/ false;
+        if (openAdd) {
+            $('#addEmployeeModal').modal('show');
+        }
+    });
+</script>
 </body>
 </html>

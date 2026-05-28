@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments-client :: head('My bookings')}"></head>
+<body id="page-top">
+<div id="wrapper">
+    <ul th:replace="~{fragments-client :: sidebar}"></ul>
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+            <nav th:replace="~{fragments-client :: topbar}"></nav>
+            <div class="container-fluid">
+                <h1 class="h3 mb-4 text-gray-800">My bookings</h1>
+
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <span th:text="${success}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Service</th>
+                                    <th>Price (PLN)</th>
+                                    <th>Employee</th>
+                                    <th>Contact</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="r : ${reservations}">
+                                    <td th:text="${#temporals.format(r.reservationDate, 'yyyy-MM-dd')}">2026-01-01</td>
+                                    <td th:text="${#temporals.format(r.reservationTime, 'HH:mm')}">10:00</td>
+                                    <td th:text="${r.serviceName}">Service</td>
+                                    <td th:text="${#numbers.formatDecimal(r.finalPrice, 1, 2)}">0</td>
+                                    <td th:text="${r.employeeName}">Jan K.</td>
+                                    <td class="small">
+                                        <span th:text="${r.contactFirstName + ' ' + r.contactLastName}">First name</span><br>
+                                        <span th:text="${r.contactEmail}">e@mail</span><br>
+                                        <span th:text="${r.contactPhone}">tel</span>
+                                    </td>
+                                    <td>
+                                        <span th:switch="${r.status.name()}">
+                                            <span th:case="'PENDING'" class="badge badge-warning" th:text="${r.statusLabel}">Pending</span>
+                                            <span th:case="'CONFIRMED'" class="badge badge-success" th:text="${r.statusLabel}">Confirmed</span>
+                                            <span th:case="'CANCELLED'" class="badge badge-secondary" th:text="${r.statusLabel}">Cancelled</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <form th:if="${r.cancellable}"
+                                              th:action="@{/client/reservations/{id}/cancel(id=${r.id})}"
+                                              method="post" class="d-inline"
+                                              onsubmit="return confirm('Cancel this booking?');">
+                                            <th:block th:replace="~{fragments-common :: csrf}"/>
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        </form>
+                                        <span th:if="${!r.cancellable and r.status.name() == 'CANCELLED'}" class="text-muted small">Cancelled</span>
+                                        <span th:if="${!r.cancellable and r.status.name() != 'CANCELLED'}" class="text-muted small">Past visit</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(reservations)}">
+                                    <td colspan="8" class="text-center">No bookings yet.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments-client :: scripts}"></div>
+</body>
+</html>

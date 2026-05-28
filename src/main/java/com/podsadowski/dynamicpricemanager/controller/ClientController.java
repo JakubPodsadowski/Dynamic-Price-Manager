@@ -1,23 +1,25 @@
 package com.podsadowski.dynamicpricemanager.controller;
 
-import com.podsadowski.dynamicpricemanager.entity.AppUser;
-import com.podsadowski.dynamicpricemanager.entity.Employee;
-import com.podsadowski.dynamicpricemanager.entity.Reservation;
-import com.podsadowski.dynamicpricemanager.entity.SaloonService;
+import com.podsadowski.dynamicpricemanager.dto.CreateReservationDto;
+import com.podsadowski.dynamicpricemanager.dto.UserProfileDto;
+import com.podsadowski.dynamicpricemanager.dto.UserProfileUpdateDto;
 import com.podsadowski.dynamicpricemanager.service.EmployeeService;
 import com.podsadowski.dynamicpricemanager.service.ReservationService;
 import com.podsadowski.dynamicpricemanager.service.SaloonServiceManager;
 import com.podsadowski.dynamicpricemanager.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
-import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Controller
 @RequestMapping("/client")
@@ -37,53 +39,115 @@ public class ClientController {
 
     @GetMapping
     public String clientPanel(Model model) {
-        model.addAttribute("services", saloonServiceManager.getAllServices());
+        model.addAttribute("activeTab", "services");
+        model.addAttribute("services", saloonServiceManager.listAllDtos());
         return "client";
     }
 
     @GetMapping("/profile")
     public String viewProfile(Model model, Principal principal) {
-        AppUser user = userService.getUserByEmail(principal.getName());
-        model.addAttribute("user", user);
+        model.addAttribute("activeTab", "profile");
+        UserProfileDto profile = userService.getUserProfileDto(principal.getName());
+        model.addAttribute("userProfile", profile);
+        UserProfileUpdateDto update = new UserProfileUpdateDto();
+        update.setFirstName(profile.getFirstName() != null ? profile.getFirstName() : "");
+        update.setLastName(profile.getLastName() != null ? profile.getLastName() : "");
+        update.setPhoneNumber(profile.getPhoneNumber());
+        model.addAttribute("profileUpdate", update);
         return "client-profile";
     }
 
     @PostMapping("/profile")
-    public String updateProfile(@RequestParam String firstName,
-                                @RequestParam String lastName,
-                                @RequestParam String phoneNumber,
+    public String updateProfile(@Valid @ModelAttribute("profileUpdate") UserProfileUpdateDto profileUpdate,
+                                BindingResult bindingResult,
+                                Model model,
                                 Principal principal) {
-        userService.updateUserProfile(principal.getName(), firstName, lastName, phoneNumber);
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("activeTab", "profile");
+            model.addAttribute("userProfile", userService.getUserProfileDto(principal.getName()));
+            return "client-profile";
+        }
+        userService.updateUserProfile(principal.getName(), profileUpdate);
         return "redirect:/client/profile?success";
     }
 
+    @GetMapping("/reservations")
+    public String myReservations(Model model, Principal principal) {
+        model.addAttribute("activeTab", "myReservations");
+        model.addAttribute("reservations", reservationService.listForClient(principal.getName()));
+        return "client-reservations";
+    }
+
+    @PostMapping("/reservations/{id}/cancel")
+    public String cancelReservation(@PathVariable Long id,
+                                    Principal principal,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            reservationService.cancelByClient(id, principal.getName());
+            redirectAttributes.addFlashAttribute("success", "Reservation cancelled.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/client/reservations";
+    }
+
     @GetMapping("/book")
-    public String bookingForm(@RequestParam Long serviceId, Model model) {
-        model.addAttribute("activeTab", "reservation");
-        model.addAttribute("selectedService", saloonServiceManager.getServiceById(serviceId));
-        model.addAttribute("employees", employeeService.getAllEmployees());
+    public String bookingForm(@RequestParam Long serviceId, Model model, Principal principal, RedirectAttributes redirectAttributes) {
+        try {
+            model.addAttribute("selectedService", saloonServiceManager.getServiceDtoById(serviceId));
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/client";
+        }
+        model.addAttribute("activeTab", "services");
+        model.addAttribute("employees", employeeService.getAllEmployeeDtos());
+        if (!model.containsAttribute("reservationForm")) {
+            model.addAttribute("reservationForm", buildPrefilledReservationForm(serviceId, principal.getName()));
+        }
         return "client-book";
     }
 
+    private CreateReservationDto buildPrefilledReservationForm(Long serviceId, String email) {
+        CreateReservationDto dto = new CreateReservationDto();
+        dto.setServiceId(serviceId);
+        UserProfileDto profile = userService.getUserProfileDto(email);
+        dto.setContactFirstName(emptyToBlank(profile.getFirstName()));
+        dto.setContactLastName(emptyToBlank(profile.getLastName()));
+        dto.setContactEmail(emptyToBlank(profile.getEmail()));
+        dto.setContactPhone(emptyToBlank(profile.getPhoneNumber()));
+        return dto;
+    }
+
+    private static String emptyToBlank(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s.trim();
+    }
+
     @PostMapping("/reserve")
-    public String processReservation(@RequestParam Long serviceId,
-                                     @RequestParam Long employeeId,
-                                     @RequestParam String date,
-                                     @RequestParam String time,
-                                     Principal principal) {
-
-        AppUser client = userService.getUserByEmail(principal.getName());
-        SaloonService service = saloonServiceManager.getServiceById(serviceId);
-        Employee employee = employeeService.getEmployeeById(employeeId);
-
-        Reservation reservation = new Reservation();
-        reservation.setClient(client);
-        reservation.setService(service);
-        reservation.setEmployee(employee);
-        reservation.setReservationDate(LocalDate.parse(date));
-        reservation.setReservationTime(LocalTime.parse(time));
-
-        reservationService.addReservation(reservation);
-        return "redirect:/client?success";
+    public String processReservation(@Valid @ModelAttribute("reservationForm") CreateReservationDto reservationForm,
+                                     BindingResult bindingResult,
+                                     Model model,
+                                     Principal principal,
+                                     RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("activeTab", "services");
+            try {
+                model.addAttribute("selectedService", saloonServiceManager.getServiceDtoById(reservationForm.getServiceId()));
+            } catch (IllegalArgumentException ex) {
+                redirectAttributes.addFlashAttribute("error", ex.getMessage());
+                return "redirect:/client";
+            }
+            model.addAttribute("employees", employeeService.getAllEmployeeDtos());
+            return "client-book";
+        }
+        try {
+            reservationService.createReservation(reservationForm, principal.getName());
+            return "redirect:/client?success=pending";
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/client/book?serviceId=" + reservationForm.getServiceId();
+        }
     }
 }

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments-client :: head('Rezerwacja Terminu')}"></head>
+<head th:replace="~{fragments-client :: headBooking('Booking')}"></head>
 <body id="page-top">
 <div id="wrapper">
     <ul th:replace="~{fragments-client :: sidebar}"></ul>
@@ -9,58 +9,127 @@
             <nav th:replace="~{fragments-client :: topbar}"></nav>
             <div class="container-fluid">
 
-                <h1 class="h3 mb-4 text-gray-800">Ustal Termin Wizyty</h1>
+                <h1 class="h3 mb-4 text-gray-800">Booking wizyty</h1>
+
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
 
                 <div class="row">
-                    <div class="col-lg-6">
+                    <div class="col-lg-8">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3">
                                 <h6 class="m-0 font-weight-bold text-primary">
-                                    Rezerwujesz: <span th:text="${selectedService.name}"></span>
-                                    (Czas: <span th:text="${selectedService.duration}"></span> min)
+                                    <span th:text="${selectedService.name}">Service</span>
+                                    <span class="text-muted font-weight-normal">·</span>
+                                    <span class="text-muted font-weight-normal" th:text="${selectedService.duration} + ' min'">30 min</span>
                                 </h6>
                             </div>
                             <div class="card-body">
-                                <form th:action="@{/client/reserve}" method="post">
-                                    <input type="hidden" name="serviceId" th:value="${selectedService.id}">
+                                <form th:action="@{/client/reserve}" th:object="${reservationForm}" method="post" id="reserveForm">
+                                    <th:block th:replace="~{fragments-common :: csrf}"/>
+                                    <input type="hidden" th:field="*{serviceId}" id="fieldServiceId">
+
+                                    <h6 class="text-primary mb-3">Contact details</h6>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label>First name</label>
+                                            <input type="text" class="form-control" th:field="*{contactFirstName}"
+                                                   th:classappend="${#fields.hasErrors('contactFirstName')} ? 'is-invalid'">
+                                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('contactFirstName')}" th:errors="*{contactFirstName}"></div>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label>Last name</label>
+                                            <input type="text" class="form-control" th:field="*{contactLastName}"
+                                                   th:classappend="${#fields.hasErrors('contactLastName')} ? 'is-invalid'">
+                                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('contactLastName')}" th:errors="*{contactLastName}"></div>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label>Email</label>
+                                            <input type="email" class="form-control" th:field="*{contactEmail}"
+                                                   th:classappend="${#fields.hasErrors('contactEmail')} ? 'is-invalid'">
+                                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('contactEmail')}" th:errors="*{contactEmail}"></div>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label>Phone</label>
+                                            <input type="text" class="form-control" th:field="*{contactPhone}"
+                                                   th:classappend="${#fields.hasErrors('contactPhone')} ? 'is-invalid'">
+                                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('contactPhone')}" th:errors="*{contactPhone}"></div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-4">
+                                    <h6 class="text-primary mb-3">Appointment</h6>
 
                                     <div class="form-group">
-                                        <label class="font-weight-bold">Wybierz Pracownika</label>
-                                        <select name="employeeId" id="employeeSelect" class="form-control" required>
-                                            <option value="" disabled selected>-- Wybierz specjalistę --</option>
+                                        <label class="font-weight-bold">Specialist</label>
+                                        <select th:field="*{employeeId}" id="employeeSelect" class="form-control" required>
+                                            <option value="" disabled th:selected="${reservationForm.employeeId == null}">— select —</option>
                                             <option th:each="emp : ${employees}"
                                                     th:value="${emp.id}"
-                                                    th:text="${emp.firstName + ' ' + emp.lastName + ' (' + emp.specialization + ')'}">
+                                                    th:text="|${emp.firstName} ${emp.lastName}|">
                                             </option>
                                         </select>
+                                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('employeeId')}" th:errors="*{employeeId}"></div>
+                                    </div>
+
+                                    <input type="hidden" th:field="*{date}" id="fieldDate">
+                                    <input type="hidden" th:field="*{startTime}" id="fieldStartTime">
+
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Day</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="datePicker" placeholder="Pick a date" autocomplete="off" readonly>
+                                            <div class="input-group-append">
+                                                <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
+                                            </div>
+                                        </div>
+                                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('date')}" th:errors="*{date}"></div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="font-weight-bold">Wybierz Datę</label>
-                                        <input type="date" name="date" id="dateSelect" class="form-control" required disabled>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="font-weight-bold">Wybierz Godzinę</label>
-                                        <select name="time" id="timeSelect" class="form-control" required disabled>
-                                            <option value="" disabled selected>-- Najpierw wybierz pracownika i datę --</option>
-                                            <option value="09:00">09:00</option>
-                                            <option value="10:00">10:00</option>
-                                            <option value="11:00">11:00</option>
-                                            <option value="12:00">12:00</option>
-                                            <option value="13:00">13:00</option>
-                                            <option value="14:00">14:00</option>
-                                            <option value="15:00">15:00</option>
-                                            <option value="16:00">16:00</option>
-                                            <option value="17:00">17:00</option>
-                                        </select>
-                                        <small class="form-text text-muted">Wyszarzone godziny są już zajęte.</small>
+                                        <label class="font-weight-bold">Start time</label>
+                                        <div class="d-flex flex-wrap align-items-center">
+                                            <button type="button" class="btn btn-outline-primary btn-sm mr-2 mb-2" id="openTimeModal" disabled>
+                                                <i class="far fa-clock mr-1"></i><span id="timeLabel">Pick a time</span>
+                                            </button>
+                                            <span id="slotsHint" class="text-muted small mb-2 d-none">No free slots on this day.</span>
+                                        </div>
+                                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('startTime')}" th:errors="*{startTime}"></div>
+                                        <p id="hoursLoadError" class="text-danger small mt-2 mb-0" style="display:none"></p>
                                     </div>
 
                                     <button type="submit" id="submitBtn" class="btn btn-primary btn-block shadow-sm" disabled>
-                                        Potwierdź Rezerwację
+                                        Submit booking (pending confirmation)
                                     </button>
                                 </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card shadow mb-4 border-left-info" id="priceDashboard" style="display:none;">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-info">Price for selected slot</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-1 small text-muted">Catalog price</p>
+                                <p class="h5 text-gray-800 mb-3"><span th:text="${#numbers.formatDecimal(selectedService.price, 1, 2)}">0</span> PLN</p>
+                                <hr>
+                                <p class="mb-1 small text-muted">Total (dynamic)</p>
+                                <p class="h4 text-success mb-2" id="dynFinalPrice">—</p>
+                                <p class="font-weight-bold small mb-1">Adjustments:</p>
+                                <ul class="small pl-3 mb-0" id="dynLines"></ul>
+                                <p class="text-danger small mt-2 mb-0" id="dynPriceError" style="display:none;"></p>
+                            </div>
+                        </div>
+                        <div class="card shadow mb-4" id="priceHintCard">
+                            <div class="card-body small text-muted">
+                                Select a slot to see the final price.
                             </div>
                         </div>
                     </div>
@@ -71,61 +140,238 @@
     </div>
 </div>
 
+<div class="modal fade" id="timeSlotModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Pick a time</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">Time and price are shown on each button.</p>
+                <div id="slotButtons" class="d-flex flex-wrap"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div th:replace="~{fragments-client :: scripts}"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/js/bootstrap-datepicker.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/locales/bootstrap-datepicker.pl.min.js" crossorigin="anonymous"></script>
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        var serviceId = /*[[${selectedService.id}]]*/ 0;
+        var employeeSelect = document.getElementById('employeeSelect');
+        var datePicker = $('#datePicker');
+        datePicker.prop('disabled', true);
+        var fieldDate = document.getElementById('fieldDate');
+        var fieldStartTime = document.getElementById('fieldStartTime');
+        var submitBtn = document.getElementById('submitBtn');
+        var openTimeModal = document.getElementById('openTimeModal');
+        var timeLabel = document.getElementById('timeLabel');
+        var slotsHint = document.getElementById('slotsHint');
+        var hoursLoadError = document.getElementById('hoursLoadError');
+        var priceDashboard = document.getElementById('priceDashboard');
+        var priceHintCard = document.getElementById('priceHintCard');
+        var dynFinalPrice = document.getElementById('dynFinalPrice');
+        var dynLines = document.getElementById('dynLines');
+        var dynPriceError = document.getElementById('dynPriceError');
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const employeeSelect = document.getElementById('employeeSelect');
-        const dateSelect = document.getElementById('dateSelect');
-        const timeSelect = document.getElementById('timeSelect');
-        const submitBtn = document.getElementById('submitBtn');
+        function hidePriceDashboard() {
+            priceDashboard.style.display = 'none';
+            priceHintCard.style.display = 'block';
+            dynPriceError.style.display = 'none';
+            dynLines.innerHTML = '';
+            dynFinalPrice.textContent = '—';
+        }
 
-        const today = new Date().toISOString().split('T')[0];
-        dateSelect.setAttribute('min', today);
+        function showPriceDashboard() {
+            priceDashboard.style.display = 'block';
+            priceHintCard.style.display = 'none';
+        }
 
-        employeeSelect.addEventListener('change', function() {
-            dateSelect.disabled = false;
-            checkAvailableHours();
+        function refreshPriceQuote() {
+            hidePriceDashboard();
+            dynPriceError.style.display = 'none';
+            if (!fieldDate.value || !fieldStartTime.value) {
+                return;
+            }
+            var timeParam = fieldStartTime.value;
+            var url = '/api/booking/price-quote?serviceId=' + encodeURIComponent(serviceId)
+                + '&date=' + encodeURIComponent(fieldDate.value)
+                + '&time=' + encodeURIComponent(timeParam);
+            fetch(url, {credentials: 'same-origin', headers: buildFetchHeaders()})
+                .then(function (response) {
+                    return response.json().then(function (body) {
+                        return {ok: response.ok, body: body};
+                    });
+                })
+                .then(function (res) {
+                    if (!res.ok) {
+                        var msg = (res.body && res.body.message) ? res.body.message : 'Could not calculate price.';
+                        dynPriceError.textContent = msg;
+                        dynPriceError.style.display = 'block';
+                        priceHintCard.style.display = 'none';
+                        priceDashboard.style.display = 'block';
+                        return;
+                    }
+                    var q = res.body;
+                    dynFinalPrice.textContent = q.finalPrice.toFixed(2) + ' PLN';
+                    dynLines.innerHTML = '';
+                    (q.lines || []).forEach(function (line) {
+                        var li = document.createElement('li');
+                        li.textContent = line.description + ' (' + (line.deltaPln >= 0 ? '+' : '') + line.deltaPln.toFixed(2) + ' PLN)';
+                        dynLines.appendChild(li);
+                    });
+                    showPriceDashboard();
+                })
+                .catch(function () {
+                    dynPriceError.textContent = 'Failed to load price quote.';
+                    dynPriceError.style.display = 'block';
+                    priceHintCard.style.display = 'none';
+                    priceDashboard.style.display = 'block';
+                });
+        }
+
+        function readCookie(name) {
+            var prefix = name + '=';
+            var parts = document.cookie.split(';');
+            for (var i = 0; i < parts.length; i++) {
+                var part = parts[i].trim();
+                if (part.indexOf(prefix) === 0) {
+                    return decodeURIComponent(part.substring(prefix.length));
+                }
+            }
+            return null;
+        }
+
+        function buildFetchHeaders() {
+            var headers = {'Accept': 'application/json'};
+            var token = readCookie('XSRF-TOKEN');
+            if (token) {
+                headers['X-XSRF-TOKEN'] = token;
+            }
+            return headers;
+        }
+
+        datePicker.datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            todayHighlight: true,
+            startDate: new Date(),
+            language: 'en',
+            weekStart: 1
+        }).on('changeDate', function () {
+            var v = datePicker.datepicker('getFormattedDate', 'yyyy-mm-dd');
+            fieldDate.value = v || '';
+            fieldStartTime.value = '';
+            timeLabel.textContent = 'Pick a time';
+            submitBtn.disabled = true;
+            hidePriceDashboard();
+            loadSlots();
         });
 
-        dateSelect.addEventListener('change', checkAvailableHours);
+        if (fieldDate.value) {
+            datePicker.datepicker('setDate', fieldDate.value);
+            datePicker.prop('disabled', !employeeSelect.value);
+        }
 
-        timeSelect.addEventListener('change', function() {
-            submitBtn.disabled = !this.value;
+        employeeSelect.addEventListener('change', function () {
+            datePicker.prop('disabled', !employeeSelect.value);
+            fieldStartTime.value = '';
+            timeLabel.textContent = 'Pick a time';
+            submitBtn.disabled = true;
+            hidePriceDashboard();
+            if (!employeeSelect.value) {
+                fieldDate.value = '';
+                datePicker.datepicker('clearDates');
+                openTimeModal.disabled = true;
+                return;
+            }
+            if (fieldDate.value) {
+                loadSlots();
+            }
         });
 
-        function checkAvailableHours() {
-            const empId = employeeSelect.value;
-            const dateStr = dateSelect.value;
+        openTimeModal.addEventListener('click', function () {
+            if (!fieldDate.value || !employeeSelect.value) return;
+            $('#timeSlotModal').modal('show');
+        });
 
+        function showLoadError(msg) {
+            hoursLoadError.textContent = msg || 'Could not load available times.';
+            hoursLoadError.style.display = 'block';
+        }
+
+        function loadSlots() {
+            hoursLoadError.style.display = 'none';
+            slotsHint.classList.add('d-none');
+            openTimeModal.disabled = true;
+            slotButtons.innerHTML = '';
+
+            var empId = employeeSelect.value;
+            var dateStr = fieldDate.value;
             if (!empId || !dateStr) {
-                timeSelect.disabled = true;
                 return;
             }
 
-            timeSelect.disabled = false;
+            var url = '/api/booking/available-slots?employeeId=' + encodeURIComponent(empId)
+                + '&date=' + encodeURIComponent(dateStr)
+                + '&serviceId=' + encodeURIComponent(serviceId);
 
-            Array.from(timeSelect.options).forEach(opt => {
-                if(opt.value !== "") {
-                    opt.disabled = false;
-                    opt.text = opt.value;
-                }
-            });
-
-            fetch(`/api/reservations/taken-hours?employeeId=${empId}&date=${dateStr}`)
-                .then(response => response.json())
-                .then(takenHours => {
-                    Array.from(timeSelect.options).forEach(opt => {
-                        if (opt.value && takenHours.some(th => th.startsWith(opt.value))) {
-                            opt.disabled = true;
-                            opt.text = opt.value + " (Zajęty)";
-                        }
+            fetch(url, {credentials: 'same-origin', headers: buildFetchHeaders()})
+                .then(function (response) {
+                    return response.json().then(function (body) {
+                        return {ok: response.ok, status: response.status, body: body};
                     });
                 })
-                .catch(error => console.error('Błąd pobierania godzin:', error));
+                .then(function (res) {
+                    if (!res.ok) {
+                        var msg = (res.body && res.body.message) ? res.body.message : ('Error ' + res.status);
+                        throw new Error(msg);
+                    }
+                    var slots = res.body.slots || [];
+                    slots.forEach(function (slot) {
+                        var t = slot.time;
+                        var fp = typeof slot.finalPrice === 'number' ? slot.finalPrice : 0;
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'btn btn-outline-secondary btn-sm m-1';
+                        var shortT = t.length >= 5 ? t.substring(0, 5) : t;
+                        btn.textContent = shortT + ' · ' + fp.toFixed(0) + ' PLN';
+                        btn.addEventListener('click', function () {
+                            fieldStartTime.value = t;
+                            timeLabel.textContent = shortT + ' · ' + fp.toFixed(0) + ' PLN';
+                            submitBtn.disabled = false;
+                            $('#timeSlotModal').modal('hide');
+                            refreshPriceQuote();
+                        });
+                        slotButtons.appendChild(btn);
+                    });
+                    if (slots.length === 0) {
+                        slotsHint.classList.remove('d-none');
+                    } else {
+                        openTimeModal.disabled = false;
+                    }
+                })
+                .catch(function (e) {
+                    console.error(e);
+                    showLoadError(e.message);
+                });
+        }
+
+        if (employeeSelect.value && fieldDate.value) {
+            datePicker.prop('disabled', false);
+            loadSlots();
+        }
+        if (fieldStartTime.value) {
+            var t = fieldStartTime.value;
+            timeLabel.textContent = t.length >= 5 ? t.substring(0, 5) : t;
+            submitBtn.disabled = false;
+            openTimeModal.disabled = false;
+            refreshPriceQuote();
         }
     });
 </script>
-
 </body>
 </html>

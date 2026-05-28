@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
-<head th:replace="~{fragments-client :: head('Rezerwacja Usług')}"></head>
+<head th:replace="~{fragments-client :: head('Book a Service')}"></head>
 
 <body id="page-top">
 
@@ -16,10 +16,17 @@
 
             <div class="container-fluid">
 
-                <h1 class="h3 mb-4 text-gray-800">Dostępne Usługi</h1>
+                <h1 class="h3 mb-4 text-gray-800">Available Services</h1>
 
-                <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show" role="alert">
-                    Rezerwacja została przyjęta pomyślnie!
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div th:if="${param.success != null && param.success[0] == 'pending'}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    Your booking was saved with status <strong>pending</strong>. We will confirm it after admin review.
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -27,35 +34,35 @@
 
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Wybierz usługę dla siebie</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">Choose a service</h6>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-bordered" width="100%" cellspacing="0">
                                 <thead>
                                 <tr>
-                                    <th>Nazwa</th>
-                                    <th>Cena (PLN)</th>
-                                    <th>Czas (min)</th>
-                                    <th>Opis</th>
-                                    <th>Akcja</th>
+                                    <th>Name</th>
+                                    <th>Price (PLN)</th>
+                                    <th>Duration (min)</th>
+                                    <th>Description</th>
+                                    <th>Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr th:each="service : ${services}">
-                                    <td th:text="${service.name}" class="font-weight-bold">Nazwa</td>
+                                    <td th:text="${service.name}" class="font-weight-bold">Name</td>
                                     <td th:text="${service.price}">0.00</td>
                                     <td th:text="${service.duration}">30</td>
-                                    <td th:text="${service.description}">Opis</td>
+                                    <td th:text="${service.description}">Description</td>
                                     <td>
-                                        <a th:href="@{/client/book(serviceId=${service.id})}" class="btn btn-success btn-icon-split">
+                                        <a th:href="@{/client/book(serviceId=${service.id})}" class="btn btn-primary btn-icon-split">
                                             <span class="icon text-white-50"><i class="fas fa-calendar-check"></i></span>
-                                            <span class="text">Zarezerwuj Termin</span>
+                                            <span class="text">Book appointment</span>
                                         </a>
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(services)}">
-                                    <td colspan="5" class="text-center">Obecnie nie mamy dostępnych usług. Zapraszamy wkrótce!</td>
+                                    <td colspan="5" class="text-center">No services available at the moment.</td>
                                 </tr>
                                 </tbody>
                             </table>

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -28,6 +29,12 @@ public class Employee {
 
     private String specialization;
 
+    @Column(nullable = false)
+    private LocalTime workDayStart = LocalTime.of(9, 0);
+
+    @Column(nullable = false)
+    private LocalTime workDayEnd = LocalTime.of(17, 0);
+
     @ManyToMany
     @JoinTable(
             name = "employee_services",
@@ -35,4 +42,15 @@ public class Employee {
             inverseJoinColumns = @JoinColumn(name = "service_id")
     )
     private Set<SaloonService> services = new HashSet<>();
+
+    @PrePersist
+    @PreUpdate
+    public void ensureWorkHoursDefault() {
+        if (workDayStart == null) {
+            workDayStart = LocalTime.of(9, 0);
+        }
+        if (workDayEnd == null) {
+            workDayEnd = LocalTime.of(17, 0);
+        }
+    }
 }

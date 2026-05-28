@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments-admin :: head('Dynamic pricing')}"></head>
+<body id="page-top">
+<div id="wrapper">
+    <ul th:replace="~{fragments-admin :: sidebar}"></ul>
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+            <nav th:replace="~{fragments-admin :: topbar}"></nav>
+            <div class="container-fluid">
+                <h1 class="h3 mb-4 text-gray-800">Dynamic pricing</h1>
+
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${success}"></span>
+                    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Global settings</h6>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/admin/pricing/settings}" method="post" class="mb-0">
+                            <th:block th:replace="~{fragments-common :: csrf}"/>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label>Analysis period (weeks)</label>
+                                    <input type="number" name="historyLookbackWeeks" class="form-control" min="1" max="52"
+                                           th:value="${settings.historyLookbackWeeks}">
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label>Busy threshold (visit count)</label>
+                                    <input type="number" name="busyIfTotalReservationsGte" class="form-control" min="0"
+                                           th:value="${settings.busyIfTotalReservationsGte}">
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label>Quiet threshold (visit count)</label>
+                                    <input type="number" name="quietIfTotalReservationsLte" class="form-control" min="0"
+                                           th:value="${settings.quietIfTotalReservationsLte}">
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label>Last minute: hours before</label>
+                                    <input type="number" name="lastMinuteWithinHours" class="form-control" min="0" max="72"
+                                           th:value="${settings.lastMinuteWithinHours}">
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label>Last minute discount (%)</label>
+                                    <input type="number" step="0.1" name="lastMinuteDiscountPercent" class="form-control" min="0"
+                                           th:value="${settings.lastMinuteDiscountPercent}">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save settings</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Rules (weekday + time window)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive mb-4">
+                            <table class="table table-bordered">
+                                <thead>
+                                <tr>
+                                    <th>On</th>
+                                    <th>Name</th>
+                                    <th>Day</th>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Type</th>
+                                    <th>%</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="r : ${rules}">
+                                    <td th:text="${r.enabled} ? 'Yes' : 'No'"></td>
+                                    <td th:text="${r.name}"></td>
+                                    <td th:text="${r.dayOfWeek}"></td>
+                                    <td th:text="${#temporals.format(r.windowStart, 'HH:mm')}"></td>
+                                    <td th:text="${#temporals.format(r.windowEnd, 'HH:mm')}"></td>
+                                    <td th:text="${r.kind.label}"></td>
+                                    <td th:text="${r.percent}"></td>
+                                    <td>
+                                        <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" th:data-target="'#editRule'+${r.id}">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <form th:action="@{/admin/pricing/rules/{id}/delete(id=${r.id})}" method="post" class="d-inline" onsubmit="return confirm('Delete this rule?');">
+                                            <th:block th:replace="~{fragments-common :: csrf}"/>
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(rules)}">
+                                    <td colspan="8" class="text-center">No rules yet — add one below.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h6 class="font-weight-bold text-primary">Add rule</h6>
+                        <form th:action="@{/admin/pricing/rules}" method="post" th:object="${ruleForm}" class="form-row align-items-end">
+                            <th:block th:replace="~{fragments-common :: csrf}"/>
+                            <div class="form-group col-md-2">
+                                <label>Name</label>
+                                <input type="text" th:field="*{name}" class="form-control" required>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label>Day</label>
+                                <select th:field="*{dayOfWeek}" class="form-control" required>
+                                    <option th:each="d : ${T(java.time.DayOfWeek).values()}" th:value="${d}" th:text="${d}"></option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-1">
+                                <label>From</label>
+                                <input type="time" th:field="*{windowStart}" class="form-control" required>
+                            </div>
+                            <div class="form-group col-md-1">
+                                <label>To</label>
+                                <input type="time" th:field="*{windowEnd}" class="form-control" required>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label>Type</label>
+                                <select th:field="*{kind}" class="form-control" required>
+                                    <option th:each="k : ${T(com.podsadowski.dynamicpricemanager.entity.PricingRuleKind).values()}"
+                                            th:value="${k}" th:text="${k.label}"></option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-1">
+                                <label>%</label>
+                                <input type="number" step="0.1" th:field="*{percent}" class="form-control" min="0" required>
+                            </div>
+                            <div class="form-group col-md-1">
+                                <label>Enabled</label>
+                                <select th:field="*{enabled}" class="form-control">
+                                    <option th:value="true">Tak</option>
+                                    <option th:value="false">Nie</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <button type="submit" class="btn btn-success">Add</button>
+                            </div>
+                        </form>
+
+                        <th:block th:each="r : ${rules}">
+                            <div class="modal fade" th:id="'editRule'+${r.id}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form th:action="@{/admin/pricing/rules/{id}(id=${r.id})}" method="post">
+                                            <th:block th:replace="~{fragments-common :: csrf}"/>
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Edit rule</h5>
+                                                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="form-group">
+                                                    <label>Name</label>
+                                                    <input type="text" name="name" class="form-control" th:value="${r.name}" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Day</label>
+                                                    <select name="dayOfWeek" class="form-control" required>
+                                                        <option th:each="d : ${T(java.time.DayOfWeek).values()}"
+                                                                th:value="${d}" th:selected="${d == r.dayOfWeek}" th:text="${d}"></option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-6">
+                                                        <label>From</label>
+                                                        <input type="time" name="windowStart" class="form-control"
+                                                               th:value="${#temporals.format(r.windowStart, 'HH:mm')}" required>
+                                                    </div>
+                                                    <div class="form-group col-6">
+                                                        <label>To</label>
+                                                        <input type="time" name="windowEnd" class="form-control"
+                                                               th:value="${#temporals.format(r.windowEnd, 'HH:mm')}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Type</label>
+                                                    <select name="kind" class="form-control" required>
+                                                        <option th:each="k : ${T(com.podsadowski.dynamicpricemanager.entity.PricingRuleKind).values()}"
+                                                                th:value="${k}" th:selected="${k == r.kind}" th:text="${k.label}"></option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>%</label>
+                                                    <input type="number" step="0.1" name="percent" class="form-control" th:value="${r.percent}" min="0" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Enabled</label>
+                                                    <select name="enabled" class="form-control">
+                                                        <option th:value="true" th:selected="${r.enabled}">Tak</option>
+                                                        <option th:value="false" th:selected="${!r.enabled}">Nie</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </th:block>
+                    </div>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Price simulator</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-row align-items-end">
+                            <div class="form-group col-md-3">
+                                <label>Service</label>
+                                <select id="simServiceId" class="form-control">
+                                    <option th:each="s : ${allServices}" th:value="${s.id}" th:text="${s.name}"></option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label>Date</label>
+                                <input type="date" id="simDate" class="form-control">
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label>Time</label>
+                                <input type="time" id="simTime" class="form-control" step="60">
+                            </div>
+                            <div class="form-group col-md-2">
+                                <button type="button" class="btn btn-info" id="simBtn">Calculate</button>
+                            </div>
+                        </div>
+                        <div id="simResult" class="mt-3" style="display:none;">
+                            <table class="table table-sm table-bordered w-auto">
+                                <tr><th>Base price</th><td id="simBase"></td></tr>
+                                <tr><th>Final price</th><td id="simFinal" class="font-weight-bold text-success"></td></tr>
+                            </table>
+                            <p class="font-weight-bold mb-1">Breakdown:</p>
+                            <ul id="simLines" class="small"></ul>
+                        </div>
+                        <p id="simError" class="text-danger small mt-2" style="display:none;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments-admin :: scripts}"></div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.getElementById('simBtn');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            var sid = document.getElementById('simServiceId').value;
+            var d = document.getElementById('simDate').value;
+            var t = document.getElementById('simTime').value;
+            if (!sid || !d || !t) {
+                alert('Fill in service, date and time.');
+                return;
+            }
+            var timeParam = t.length === 5 ? t + ':00' : t;
+            var url = '/admin/pricing/quote?serviceId=' + encodeURIComponent(sid)
+                + '&date=' + encodeURIComponent(d)
+                + '&time=' + encodeURIComponent(timeParam);
+            document.getElementById('simError').style.display = 'none';
+            document.getElementById('simResult').style.display = 'none';
+            fetch(url, {credentials: 'same-origin', headers: {'Accept': 'application/json'}})
+                .then(function (r) { return r.json().then(function (b) { return {ok: r.ok, b: b}; }); })
+                .then(function (x) {
+                    if (!x.ok) {
+                        document.getElementById('simError').textContent = typeof x.b === 'string' ? x.b : 'Error';
+                        document.getElementById('simError').style.display = 'block';
+                        return;
+                    }
+                    var q = x.b;
+                    document.getElementById('simBase').textContent = q.basePrice.toFixed(2) + ' PLN';
+                    document.getElementById('simFinal').textContent = q.finalPrice.toFixed(2) + ' PLN';
+                    var ul = document.getElementById('simLines');
+                    ul.innerHTML = '';
+                    (q.lines || []).forEach(function (line) {
+                        var li = document.createElement('li');
+                        li.textContent = line.description + ' → ' + (line.deltaPln >= 0 ? '+' : '') + line.deltaPln.toFixed(2) + ' PLN';
+                        ul.appendChild(li);
+                    });
+                    document.getElementById('simResult').style.display = 'block';
+                })
+                .catch(function () {
+                    document.getElementById('simError').textContent = 'Error sieci.';
+                    document.getElementById('simError').style.display = 'block';
+                });
+        });
+    });
+</script>
+</body>
+</html>

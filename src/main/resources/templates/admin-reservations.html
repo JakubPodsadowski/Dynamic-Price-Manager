@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments-admin :: head('Reservations')}"></head>
+<body id="page-top">
+<div id="wrapper">
+    <ul th:replace="~{fragments-admin :: sidebar}"></ul>
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+            <nav th:replace="~{fragments-admin :: topbar}"></nav>
+            <div class="container-fluid">
+                <h1 class="h3 mb-4 text-gray-800">Reservations</h1>
+
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <span th:text="${success}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/admin/reservations}" method="get" class="form-row align-items-end">
+                            <div class="form-group col-md-3">
+                                <label>Employee</label>
+                                <select name="employeeId" class="form-control">
+                                    <option value="" th:selected="${selectedEmployeeId == null}">All</option>
+                                    <option th:each="emp : ${employees}"
+                                            th:value="${emp.id}"
+                                            th:selected="${selectedEmployeeId != null && selectedEmployeeId == emp.id}"
+                                            th:text="|${emp.firstName} ${emp.lastName}|">
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label>Status</label>
+                                <select name="status" class="form-control">
+                                    <option value="ALL" th:selected="${selectedStatus == 'ALL'}">All</option>
+                                    <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Pending</option>
+                                    <option value="CONFIRMED" th:selected="${selectedStatus == 'CONFIRMED'}">Confirmed</option>
+                                    <option value="CANCELLED" th:selected="${selectedStatus == 'CANCELLED'}">Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label>From date</label>
+                                <input type="date" name="dateFrom" class="form-control"
+                                       th:value="${dateFrom != null ? #temporals.format(dateFrom, 'yyyy-MM-dd') : ''}">
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label>To date</label>
+                                <input type="date" name="dateTo" class="form-control"
+                                       th:value="${dateTo != null ? #temporals.format(dateTo, 'yyyy-MM-dd') : ''}">
+                            </div>
+                            <div class="form-group col-md-2">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                                <a th:href="@{/admin/reservations}" class="btn btn-link">Clear</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Client (account)</th>
+                                    <th>Visit contact</th>
+                                    <th>Service</th>
+                                    <th>Price (PLN)</th>
+                                    <th>Employee</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="r : ${reservations}">
+                                    <td th:text="${#temporals.format(r.reservationDate, 'yyyy-MM-dd')}">2026-01-01</td>
+                                    <td th:text="${#temporals.format(r.reservationTime, 'HH:mm')}">10:00</td>
+                                    <td class="small" th:text="${r.clientAccountEmail}">account</td>
+                                    <td class="small">
+                                        <span th:text="${r.contactFirstName + ' ' + r.contactLastName}">First name</span><br>
+                                        <span th:text="${r.contactEmail}">e@mail</span><br>
+                                        <span th:text="${r.contactPhone}">tel</span>
+                                    </td>
+                                    <td th:text="${r.serviceName}">Service</td>
+                                    <td>
+                                        <span class="font-weight-bold" th:text="${#numbers.formatDecimal(r.finalPrice, 1, 2)}">0</span>
+                                        <span class="text-muted small" th:if="${r.finalPrice + 0.001 < r.serviceBasePrice}"
+                                              th:text="|(base ${#numbers.formatDecimal(r.serviceBasePrice, 1, 2)} PLN)|"></span>
+                                    </td>
+                                    <td th:text="${r.employeeName}">Employee</td>
+                                    <td>
+                                        <span th:switch="${r.status.name()}">
+                                            <span th:case="'PENDING'" class="badge badge-warning" th:text="${r.statusLabel}">Pending</span>
+                                            <span th:case="'CONFIRMED'" class="badge badge-success" th:text="${r.statusLabel}">Confirmed</span>
+                                            <span th:case="'CANCELLED'" class="badge badge-secondary" th:text="${r.statusLabel}">Cancelled</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <form th:if="${r.confirmableByAdmin}"
+                                              th:action="@{/admin/reservations/{id}/confirm(id=${r.id})}"
+                                              method="post" class="d-inline">
+                                            <th:block th:replace="~{fragments-common :: csrf}"/>
+                                            <input type="hidden" name="employeeId" th:if="${selectedEmployeeId != null}" th:value="${selectedEmployeeId}">
+                                            <input type="hidden" name="status" th:value="${selectedStatus}">
+                                            <input type="hidden" name="dateFrom" th:if="${dateFrom != null}" th:value="${#temporals.format(dateFrom, 'yyyy-MM-dd')}">
+                                            <input type="hidden" name="dateTo" th:if="${dateTo != null}" th:value="${#temporals.format(dateTo, 'yyyy-MM-dd')}">
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="fas fa-check"></i> Confirm
+                                            </button>
+                                        </form>
+                                        <form th:if="${r.cancellableByAdmin}"
+                                              th:action="@{/admin/reservations/{id}/cancel(id=${r.id})}"
+                                              method="post" class="d-inline"
+                                              onsubmit="return confirm('Cancel this reservation?');">
+                                            <th:block th:replace="~{fragments-common :: csrf}"/>
+                                            <input type="hidden" name="employeeId" th:if="${selectedEmployeeId != null}" th:value="${selectedEmployeeId}">
+                                            <input type="hidden" name="status" th:value="${selectedStatus}">
+                                            <input type="hidden" name="dateFrom" th:if="${dateFrom != null}" th:value="${#temporals.format(dateFrom, 'yyyy-MM-dd')}">
+                                            <input type="hidden" name="dateTo" th:if="${dateTo != null}" th:value="${#temporals.format(dateTo, 'yyyy-MM-dd')}">
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        </form>
+                                        <span th:if="${!r.confirmableByAdmin and !r.cancellableByAdmin}" class="text-muted small">—</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(reservations)}">
+                                    <td colspan="9" class="text-center">No reservations match your filters.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments-admin :: scripts}"></div>
+</body>
+</html>

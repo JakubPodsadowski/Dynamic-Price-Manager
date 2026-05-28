@@ -1,11 +1,14 @@
 package com.podsadowski.dynamicpricemanager.controller;
 
+import com.podsadowski.dynamicpricemanager.dto.RegisterDto;
 import com.podsadowski.dynamicpricemanager.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class AuthController {
@@ -22,20 +25,28 @@ public class AuthController {
     }
 
     @GetMapping("/register")
-    public String register() {
+    public String register(Model model) {
+        model.addAttribute("registerDto", new RegisterDto());
         return "register";
     }
 
     @PostMapping("/register")
-    public String registerUser(@RequestParam String email,
-                               @RequestParam String password,
-                               @RequestParam String confirmPassword,
+    public String registerUser(@Valid @ModelAttribute("registerDto") RegisterDto registerDto,
+                               BindingResult bindingResult,
                                Model model) {
-        if (!password.equals(confirmPassword)) {
-            model.addAttribute("error", "Passwords do not match!");
+        if (bindingResult.hasErrors()) {
             return "register";
         }
-        userService.registerUser(email, password, "CLIENT");
+        if (!registerDto.getPassword().equals(registerDto.getConfirmPassword())) {
+            model.addAttribute("passwordMismatch", true);
+            return "register";
+        }
+        try {
+            userService.registerUser(registerDto, "CLIENT");
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("error", ex.getMessage());
+            return "register";
+        }
         return "redirect:/login?registered";
     }
 
