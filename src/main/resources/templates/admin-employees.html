@@ -20,6 +20,17 @@
                     </button>
                 </div>
 
+                <div th:if="${employeeFormSaveErrors != null && !employeeFormSaveErrors.isEmpty()}"
+                     class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <p class="mb-2 font-weight-bold">Could not save employee:</p>
+                    <ul class="mb-0 pl-3 small">
+                        <li th:each="msg : ${employeeFormSaveErrors}" th:text="${msg}"></li>
+                    </ul>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
                 <div class="card shadow mb-4">
                     <div class="card-body">
                         <div class="table-responsive">
@@ -205,6 +216,10 @@
         var openAdd = /*[[${openAddModal}]]*/ false;
         if (openAdd) {
             $('#addEmployeeModal').modal('show');
+        }
+        var reopenEditId = /*[[${reopenEditEmployeeId}]]*/ null;
+        if (reopenEditId) {
+            $('#editEmp' + reopenEditId).modal('show');
         }
     });
 </script>
