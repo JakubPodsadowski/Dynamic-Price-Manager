@@ -20,6 +20,17 @@
                     </button>
                 </div>
 
+                <div th:if="${employeeFormSaveErrors != null && !employeeFormSaveErrors.isEmpty()}"
+                     class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <p class="mb-2 font-weight-bold">Could not save employee:</p>
+                    <ul class="mb-0 pl-3 small">
+                        <li th:each="msg : ${employeeFormSaveErrors}" th:text="${msg}"></li>
+                    </ul>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
                 <div class="card shadow mb-4">
                     <div class="card-body">
                         <div class="table-responsive">
@@ -78,30 +89,30 @@
                                         <button class="close" type="button" data-dismiss="modal"><span>&times;</span></button>
                                     </div>
                                     <div class="modal-body">
-                                        <input type="hidden" name="employeeForm.id" th:value="${e.id}">
+                                        <input type="hidden" name="id" th:value="${e.id}">
                                         <div class="form-row">
                                             <div class="form-group col-md-6">
                                                 <label>First name</label>
-                                                <input type="text" name="employeeForm.firstName" th:value="${e.firstName}" class="form-control" required>
+                                                <input type="text" name="firstName" th:value="${e.firstName}" class="form-control" required>
                                             </div>
                                             <div class="form-group col-md-6">
                                                 <label>Last name</label>
-                                                <input type="text" name="employeeForm.lastName" th:value="${e.lastName}" class="form-control" required>
+                                                <input type="text" name="lastName" th:value="${e.lastName}" class="form-control" required>
                                             </div>
                                         </div>
                                         <div class="form-group">
                                             <label>Specialization</label>
-                                            <input type="text" name="employeeForm.specialization" th:value="${e.specialization}" class="form-control">
+                                            <input type="text" name="specialization" th:value="${e.specialization}" class="form-control">
                                         </div>
                                         <div class="form-row">
                                             <div class="form-group col-md-6">
                                                 <label>Work start</label>
-                                                <input type="time" name="employeeForm.workDayStart" class="form-control"
+                                                <input type="time" name="workDayStart" class="form-control"
                                                        th:value="${e.workDayStart != null ? #temporals.format(e.workDayStart, 'HH:mm') : '09:00'}" required>
                                             </div>
                                             <div class="form-group col-md-6">
                                                 <label>Work end</label>
-                                                <input type="time" name="employeeForm.workDayEnd" class="form-control"
+                                                <input type="time" name="workDayEnd" class="form-control"
                                                        th:value="${e.workDayEnd != null ? #temporals.format(e.workDayEnd, 'HH:mm') : '17:00'}" required>
                                             </div>
                                         </div>
@@ -111,7 +122,7 @@
                                                 <div th:each="ser : ${allServices}" class="custom-control custom-checkbox">
                                                     <input type="checkbox" class="custom-control-input"
                                                            th:id="'checkEdit' + ${e.id} + '-' + ${ser.id}"
-                                                           name="employeeForm.serviceIds" th:value="${ser.id}"
+                                                           name="serviceIds" th:value="${ser.id}"
                                                            th:checked="${e.serviceIds != null && #lists.contains(e.serviceIds, ser.id)}">
                                                     <label class="custom-control-label" th:for="'checkEdit' + ${e.id} + '-' + ${ser.id}" th:text="${ser.name}"></label>
                                                 </div>
@@ -205,6 +216,10 @@
         var openAdd = /*[[${openAddModal}]]*/ false;
         if (openAdd) {
             $('#addEmployeeModal').modal('show');
+        }
+        var reopenEditId = /*[[${reopenEditEmployeeId}]]*/ null;
+        if (reopenEditId) {
+            $('#editEmp' + reopenEditId).modal('show');
         }
     });
 </script>

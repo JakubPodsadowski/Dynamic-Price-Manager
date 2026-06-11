@@ -52,13 +52,17 @@ public class AdminServiceController {
     @PostMapping("/edit")
     public String editService(@Valid @ModelAttribute("saloonServiceForm") SalonServiceFormDto saloonServiceForm,
                               BindingResult bindingResult,
-                              RedirectAttributes redirectAttributes) {
+                              Model model) {
         if (bindingResult.hasErrors()) {
-            String message = bindingResult.getAllErrors().stream()
+            model.addAttribute("activeTab", "services");
+            model.addAttribute("services", saloonServiceManager.listAllDtos());
+            model.addAttribute("failedEditServiceForm", saloonServiceForm);
+            model.addAttribute("reopenEditServiceId", saloonServiceForm.getId());
+            model.addAttribute("serviceFormSaveErrors", bindingResult.getAllErrors().stream()
                     .map(ObjectError::getDefaultMessage)
-                    .collect(Collectors.joining(" "));
-            redirectAttributes.addFlashAttribute("error", message.isBlank() ? "Check service details." : message);
-            return "redirect:/admin/services";
+                    .collect(Collectors.toList()));
+            model.addAttribute("saloonServiceForm", new SalonServiceFormDto());
+            return "admin-services";
         }
         saloonServiceManager.updateServiceFromForm(saloonServiceForm);
         return "redirect:/admin/services";

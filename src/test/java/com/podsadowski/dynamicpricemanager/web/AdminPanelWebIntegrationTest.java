@@ -1,6 +1,7 @@
 package com.podsadowski.dynamicpricemanager.web;
 
 import com.podsadowski.dynamicpricemanager.repository.SaloonServicesRepository;
+import com.podsadowski.dynamicpricemanager.service.EmployeeService;
 import com.podsadowski.dynamicpricemanager.support.TestEntities;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,8 @@ class AdminPanelWebIntegrationTest {
     private MockMvc mockMvc;
     @Autowired
     private SaloonServicesRepository saloonServicesRepository;
+    @Autowired
+    private EmployeeService employeeService;
 
     @Test
     @WithMockUser(roles = "ADMIN")
@@ -87,6 +90,34 @@ class AdminPanelWebIntegrationTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void services_editValidationErrorReturnsFormWithMessage() throws Exception {
+        mockMvc.perform(post("/admin/services/add")
+                        .with(csrf())
+                        .param("name", "Valid name")
+                        .param("price", "50")
+                        .param("duration", "30")
+                        .param("description", "d"))
+                .andExpect(status().is3xxRedirection());
+        Long id = saloonServicesRepository.findAll().stream()
+                .filter(s -> "Valid name".equals(s.getName()))
+                .findFirst()
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(post("/admin/services/edit")
+                        .with(csrf())
+                        .param("id", id.toString())
+                        .param("name", "")
+                        .param("price", "50")
+                        .param("duration", "30")
+                        .param("description", "d"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin-services"))
+                .andExpect(content().string(containsString("Could not save service")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void employees_validationError() throws Exception {
         mockMvc.perform(post("/admin/employees/save")
                         .with(csrf())
@@ -121,6 +152,43 @@ class AdminPanelWebIntegrationTest {
         mockMvc.perform(get("/admin/employees"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Kasia")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void employees_editExistingUsesFlatFieldNames() throws Exception {
+        var service = TestEntities.saveService(saloonServicesRepository, "EditEmpSvc", 40, 30);
+        mockMvc.perform(post("/admin/employees/save")
+                        .with(csrf())
+                        .param("firstName", "Ann")
+                        .param("lastName", "X")
+                        .param("specialization", "Color")
+                        .param("workDayStart", "09:00")
+                        .param("workDayEnd", "17:00")
+                        .param("serviceIds", service.getId().toString()))
+                .andExpect(status().is3xxRedirection());
+
+        Long empId = employeeService.getEmployees().stream()
+                .filter(e -> "Ann".equals(e.getFirstName()) && "X".equals(e.getLastName()))
+                .findFirst()
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(post("/admin/employees/save")
+                        .with(csrf())
+                        .param("id", empId.toString())
+                        .param("firstName", "Anna")
+                        .param("lastName", "Y")
+                        .param("specialization", "Cut")
+                        .param("workDayStart", "10:00")
+                        .param("workDayEnd", "18:00")
+                        .param("serviceIds", service.getId().toString()))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/admin/employees"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Anna")))
+                .andExpect(content().string(containsString("Y")));
     }
 
     @Test
